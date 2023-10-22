@@ -26,7 +26,7 @@ const userSchema = new Schema({
     lowercase: true,
     trim: true,
     validate: {
-      validator:  (value) => {
+      validator: (value) => {
         // Regular Expression to match An Emial
         return /^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/.test(value);
       },
@@ -38,9 +38,15 @@ const userSchema = new Schema({
   password: {
     type: String,
     // select: false,
-    required: [true, 'password is required'],
-    min: [8, 'password must be at least 8 characters'],
+    required: [true, "password is required"],
+    min: [8, "password must be at least 8 characters"],
+  },
 
+  // Authentication Cde :- authCode
+  authCode: {
+    type: String,
+    // select: false,
+    min: [6, "authCode must be at least 8 characters"],
   },
 });
 
