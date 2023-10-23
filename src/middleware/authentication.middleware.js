@@ -4,67 +4,78 @@ const UserModel = require("../models/User.model");
 const authMiddleware = {};
 
 authMiddleware.authenticate = async (req, res, next) => {
-    // Confimr There is a field called Authorization
-    const bearerToken = req.headers.authorization;
-    if (!bearerToken) {
-        return res.status(401).send({
-            statuscode: 401,
-            status: 'error',
-            message: 'No token provided'
-        });
-    }
+  // Confimr There is a field called Authorization
+  const bearerToken = req.headers.authorization;
+  if (!bearerToken) {
+    return res.status(401).send({
+      statuscode: 401,
+      status: "error",
+      message: "No token provided",
+    });
+  }
 
-    const token = await bearerToken.split(' ')[1];
+  const token = await bearerToken.split(" ")[1];
 
-    // If no token return unauthorized
-    if (token === undefined) {
-        return res.status(404).json({
-            status: 'error',
-            statusCode: 401,
-            message: 'No token provided'
-        });
-    }
+  // If no token return unauthorized
+  if (token === undefined) {
+    return res.status(404).json({
+      status: "error",
+      statusCode: 401,
+      message: "No token provided",
+    });
+  }
 
+  // Decode the Token
+  // Wrap the decoding i a try catch incase someone puts in a wrong token and it throws error while trying to decode the token
+  let decodedToken;
+  try {
+    decodedToken = await jwt.verify(
+      token,
+      process.env.AUTHENTICATION_SECRET_KEY
+    );
+  } catch (error) {
+    return res.status(401).json({
+      status: "error",
+      statusCode: 401,
+      message: "token is not valid",
+    });
+  }
+  // cofirm that the token is valid
+  if (!decodedToken) {
+    return res.status(401).json({
+      status: "error",
+      statusCode: 401,
+      message: "token is not valid",
+    });
+  }
 
-    // Decode the Token
+  // Extract Use4rs Id From Decoded Token
+  const userId = decodedToken.userId;
 
-    const decodedToken =await jwt.verify(token, process.env.AUTHENTICATION_SECRET_KEY);
-        // cofirm that the token is valid
-        if (!decodedToken) {
-            return res.status(401).json({
-                status: 'error',
-                statusCode: 401,
-                message: 'token is not valid'
-            });
-        };
+  // Confirm id is not unefined
+  if (!userId) {
+    return res.status(401).json({
+      status: "error",
+      statusCode: 401,
+      message: "token is not valid",
+    });
+  }
 
-        // Extract Use4rs Id From Decoded Token
-        const userId = decodedToken.userId;
+  const user = await UserModel.findById(userId);
 
-        // Confirm id is not unefined
-        if (!userId) {
-            return res.status(401).json({
-                status: 'error',
-                statusCode: 401,
-                message: 'token is not valid'
-            });
-        }
+  if (!user) {
+    return res.status(404).json({
+      status: "error",
+      statusCode: 401,
+      message:
+        "Unauthorized Request! Sign In Or SignUp!. If you are already signed in, please logout and login again",
+    });
+  }
 
-        const user = await UserModel.findById(userId);
+  // Attach Users Object To The Request Body
+  req.body.user = user;
 
-        if (!user) {
-            return res.status(404).json({
-                status: 'error',
-                statusCode: 401,
-                message:  'Unauthorized Request! Sign In Or SignUp!. If you are already signed in, please logout and login again'
-            });
-        }
-
-
-        // Attach Users Object To The Request Body
-        req.body.user = user;
-
-        // Pass To Next Middleware
-        next();
-}
-module.exports = authMiddleware
+  // Pass To Next Middleware
+  next();
+};
+module.exports = authMiddleware;
